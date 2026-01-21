@@ -1,0 +1,13 @@
+[Unit]
+Description=Service Health Checker
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/service-health-checker --daemon --config /etc/service-health-checker/config.json
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

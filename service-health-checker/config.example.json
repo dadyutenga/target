@@ -1,0 +1,28 @@
+{
+  "interval_seconds": 30,
+  "services": [
+    {
+      "name": "ssh",
+      "restart_on_failure": true,
+      "max_restarts_per_hour": 3,
+      "check": {
+        "type": "systemd"
+      }
+    },
+    {
+      "name": "nginx",
+      "restart_on_failure": true,
+      "max_restarts_per_hour": 5,
+      "check": {
+        "type": "http",
+        "url": "http://127.0.0.1",
+        "timeout_seconds": 2,
+        "expected_status": 200
+      }
+    }
+  ],
+  "logging": {
+    "log_file": "/var/log/service-health-checker.log",
+    "level": "INFO"
+  }
+}
