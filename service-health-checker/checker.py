@@ -12,12 +12,10 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-# Defaults
 DEFAULT_CONFIG_PATH = "./config.json"
 DEFAULT_INTERVAL = 30
 DEFAULT_LOG_FILE = "/var/log/service-health-checker.log"
 
-# Setup logging placeholder, will be re-configured after config load
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ class ServiceCheck:
         self.config = service_config
         self.restart_on_failure = service_config.get('restart_on_failure', False)
         self.max_restarts = service_config.get('max_restarts_per_hour', 0)
-        self.restart_history = []  # List of timestamps
+        self.restart_history = []
 
     def check(self):
         """Returns True if healthy, False if unhealthy."""
@@ -55,7 +53,6 @@ class ServiceCheck:
 class SystemdCheck(ServiceCheck):
     def check(self):
         try:
-            # Check if active
             cmd = ["systemctl", "is-active", self.name]
             result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             return result.returncode == 0
@@ -90,8 +87,6 @@ class HttpCheck(ServiceCheck):
             return False
 
     def restart(self):
-        # HTTP check might still correspond to a systemd service to restart
-        # We assume the service name in config is the systemd service name
         try:
             logger.info(f"Restarting associated systemd service for HTTP check: {self.name}")
             subprocess.run(["systemctl", "restart", self.name], check=True)
@@ -130,7 +125,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine config path. If not provided or default doesn't exist, try /etc
     config_path = args.config
     if config_path == DEFAULT_CONFIG_PATH and not os.path.exists(config_path):
         etc_path = "/etc/service-health-checker/config.json"
@@ -143,24 +137,20 @@ def main():
 
     config = load_config(config_path)
 
-    # Logging Setup
     log_file = config.get('logging', {}).get('log_file', DEFAULT_LOG_FILE)
     log_level = config.get('logging', {}).get('level', 'INFO')
     
     if args.verbose:
         log_level = "DEBUG"
 
-    # Configure logging to file if possible, otherwise stdout is already default
-    # We want both potentially
     handlers = [logging.StreamHandler(sys.stdout)]
     try:
-        # Create log directory if needed
         log_dir = os.path.dirname(log_file)
         if log_dir and not os.path.exists(log_dir):
             try:
                 os.makedirs(log_dir, exist_ok=True)
             except OSError:
-                pass # Might not have permission, fallback to stdout only
+                pass
 
         file_handler = logging.FileHandler(log_file)
         handlers.append(file_handler)
@@ -183,7 +173,6 @@ def main():
         except Exception as e:
             logger.error(f"Failed to initialize service check for {svc_conf.get('name')}: {e}")
 
-    # Handle --restart command
     if args.restart:
         svc = next((s for s in services if s.name == args.restart), None)
         if svc:
@@ -195,7 +184,6 @@ def main():
             logger.error(f"Service {args.restart} not found in config.")
         return
 
-    # Handle --status command
     if args.status:
         print(f"{'Service':<20} {'Type':<10} {'Status':<10}")
         print("-" * 40)
@@ -207,7 +195,6 @@ def main():
 
     interval = args.interval or config.get('interval_seconds', DEFAULT_INTERVAL)
 
-    # Main Loop
     logger.info("Starting Service Health Checker")
     running = True
     
@@ -239,8 +226,6 @@ def main():
         if args.once:
             break
         
-        # Sleep in chunks to handle signals faster? or just sleep
-        # Simple sleep is fine for this granular interval
         if running:
              time.sleep(interval)
 

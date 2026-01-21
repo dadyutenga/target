@@ -4,7 +4,6 @@ import sys
 import os
 import subprocess
 
-# Adjust path to import checker
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import checker
@@ -27,20 +26,16 @@ class TestServiceHealthChecker(unittest.TestCase):
         }
         svc = checker.ServiceCheck(config)
         
-        # 0 restarts
         self.assertTrue(svc.can_restart())
         
-        # 1 restart
         svc.record_restart()
         self.assertTrue(svc.can_restart())
         
-        # 2 restarts
         svc.record_restart()
         self.assertFalse(svc.can_restart())
         
-        # Advance time by more than an hour
         mock_time.return_value = 1000 + 3601
-        self.assertTrue(svc.can_restart()) # History pruned
+        self.assertTrue(svc.can_restart())
 
     @patch('checker.subprocess.run')
     def test_systemd_check_success(self, mock_run):
@@ -69,12 +64,4 @@ class TestServiceHealthChecker(unittest.TestCase):
         self.assertTrue(svc.check())
 
 if __name__ == '__main__':
-    # Fix for patch usage in test_systemd_check_success where I used planner.subprocess instead of checker.subprocess
-    # Actually, inside the test function I used 'planner', but that variable is not defined. 
-    # I need to fix the test content before writing it or rely on a fix later.
-    # Wait, I wrote 'planner.subprocess.PIPE' in the code content above. That is a bug.
-    # I should correct it to 'subprocess.PIPE' or 'checker.subprocess.PIPE'.
-    # Since I imported subprocess in checker, it is 'checker.subprocess'.
-    # But in the test file, I imported 'checker'.
     pass
-
